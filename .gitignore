@@ -1,0 +1,7 @@
+# File upload (scan KTP/KK) berisi data pribadi
+uploads/**
+!uploads/**/
+!uploads/**/.gitkeep
+
+# Dump database lengkap berisi data penduduk; gunakan database/schema.sql
+database/aplikasi_penduduk.sql
