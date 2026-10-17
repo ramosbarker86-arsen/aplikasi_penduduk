@@ -26,10 +26,25 @@ function isAdmin()
     return ($_SESSION['level'] ?? '') === 'admin';
 }
 
+function requireAdmin()
+{
+    requireLogin();
+    if (!isAdmin()) {
+        $_SESSION['flash_error'] = 'Halaman ini hanya bisa diakses oleh admin.';
+        header('Location: ' . basePath() . 'index.php');
+        exit;
+    }
+}
+
 // Mengembalikan path relatif ke root aplikasi, supaya link konsisten baik diakses
-// dari root (index.php) maupun dari dalam folder penduduk/ (penduduk/list.php, dll).
+// dari root (index.php) maupun dari dalam subfolder (penduduk/, wilayah/, users/).
 function basePath()
 {
     $script = $_SERVER['SCRIPT_NAME'];
-    return (strpos($script, '/penduduk/') !== false || strpos($script, '/wilayah/') !== false) ? '../' : '';
+    foreach (['/penduduk/', '/wilayah/', '/users/'] as $dir) {
+        if (strpos($script, $dir) !== false) {
+            return '../';
+        }
+    }
+    return '';
 }

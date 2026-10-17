@@ -40,6 +40,13 @@ $currentPage = basename($_SERVER['SCRIPT_NAME']);
                         <i class="bi bi-geo-alt-fill"></i> Master Wilayah
                     </a>
                 </li>
+                <?php if (isAdmin()): ?>
+                <li class="nav-item">
+                    <a class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/users/') !== false ? 'active' : '' ?>" href="<?= $base ?>users/list.php">
+                        <i class="bi bi-person-gear"></i> Pengguna
+                    </a>
+                </li>
+                <?php endif; ?>
             </ul>
             <ul class="navbar-nav">
                 <li class="nav-item dropdown">
