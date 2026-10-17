@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/auth.php';
-requireLogin();
+requireAdmin();
 
 $pdo = getDB();
 
@@ -27,7 +27,7 @@ $stmtCount->execute($params);
 $totalRows = (int) $stmtCount->fetchColumn();
 $totalPages = max(1, (int) ceil($totalRows / $perPage));
 
-$stmt = $pdo->prepare("SELECT id_wilayah, propinsi, Kabupaten, kecamatan, kelurahan, rw, rt
+$stmt = $pdo->prepare("SELECT id_wilayah, propinsi, Kabupaten, kecamatan, kelurahan, rw, rt, ketua_rt, ketua_rw, status_cd
                         FROM wilayah $where
                         ORDER BY propinsi ASC, kecamatan ASC, kelurahan ASC, rw ASC, rt ASC
                         LIMIT :limit OFFSET :offset");
@@ -87,12 +87,15 @@ require_once __DIR__ . '/../includes/header.php';
                         <th>Kelurahan</th>
                         <th>RW</th>
                         <th>RT</th>
+                        <th>Ketua RT</th>
+                        <th>Ketua RW</th>
+                        <th>Status</th>
                         <th class="text-center pe-4">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($rows)): ?>
-                        <tr><td colspan="8" class="text-center text-muted py-5">
+                        <tr><td colspan="11" class="text-center text-muted py-5">
                             <i class="bi bi-inbox fs-2 d-block mb-2"></i>
                             Tidak ada data wilayah<?= $search !== '' ? ' yang cocok dengan pencarian' : '' ?>.
                         </td></tr>
@@ -106,6 +109,15 @@ require_once __DIR__ . '/../includes/header.php';
                                 <td><?= htmlspecialchars($row['kelurahan']) ?></td>
                                 <td><?= htmlspecialchars($row['rw']) ?></td>
                                 <td><?= htmlspecialchars($row['rt']) ?></td>
+                                <td><?= htmlspecialchars($row['ketua_rt'] ?: '-') ?></td>
+                                <td><?= htmlspecialchars($row['ketua_rw'] ?: '-') ?></td>
+                                <td>
+                                    <?php if ($row['status_cd'] === 'active'): ?>
+                                        <span class="badge bg-success">Aktif</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-danger">Tidak Aktif</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td class="text-center text-nowrap pe-4">
                                     <a href="edit.php?id=<?= (int) $row['id_wilayah'] ?>" class="btn btn-sm btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
                                     <a href="hapus.php?id=<?= (int) $row['id_wilayah'] ?>" class="btn btn-sm btn-outline-danger" title="Hapus"

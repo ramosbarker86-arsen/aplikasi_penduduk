@@ -4,17 +4,18 @@ require_once __DIR__ . '/includes/auth.php';
 requireLogin();
 
 $pdo = getDB();
+$lingkup = filterWilayahPenduduk('id_wilayah');
 
-$totalPenduduk = (int) $pdo->query("SELECT COUNT(*) FROM penduduk WHERE status_cd = 1")->fetchColumn();
-$totalLaki     = (int) $pdo->query("SELECT COUNT(*) FROM penduduk WHERE status_cd = 1 AND jenis_kelamin = 'L'")->fetchColumn();
-$totalPerempuan = (int) $pdo->query("SELECT COUNT(*) FROM penduduk WHERE status_cd = 1 AND jenis_kelamin = 'P'")->fetchColumn();
-$totalKK       = (int) $pdo->query("SELECT COUNT(DISTINCT no_kk) FROM penduduk WHERE status_cd = 1")->fetchColumn();
+$totalPenduduk = (int) $pdo->query("SELECT COUNT(*) FROM penduduk WHERE status_cd = 'active' AND $lingkup")->fetchColumn();
+$totalLaki     = (int) $pdo->query("SELECT COUNT(*) FROM penduduk WHERE status_cd = 'active' AND $lingkup AND jenis_kelamin = 'L'")->fetchColumn();
+$totalPerempuan = (int) $pdo->query("SELECT COUNT(*) FROM penduduk WHERE status_cd = 'active' AND $lingkup AND jenis_kelamin = 'P'")->fetchColumn();
+$totalKK       = (int) $pdo->query("SELECT COUNT(DISTINCT no_kk) FROM penduduk WHERE status_cd = 'active' AND $lingkup")->fetchColumn();
 
-$terbaru = $pdo->query("SELECT id, nik, nama_lengkap, jenis_kelamin, alamat, created_at FROM penduduk WHERE status_cd = 1 ORDER BY created_at DESC LIMIT 5")->fetchAll();
+$terbaru = $pdo->query("SELECT id, nik, nama_lengkap, jenis_kelamin, alamat, created_at FROM penduduk WHERE status_cd = 'active' AND $lingkup ORDER BY created_at DESC LIMIT 5")->fetchAll();
 
 $statusKeluarga = $pdo->query("SELECT status_keluarga AS label, COUNT(*) AS total
                                 FROM penduduk
-                                WHERE status_cd = 1 AND status_keluarga IS NOT NULL AND status_keluarga != ''
+                                WHERE status_cd = 'active' AND $lingkup AND status_keluarga IS NOT NULL AND status_keluarga != ''
                                 GROUP BY status_keluarga
                                 ORDER BY total DESC")->fetchAll();
 
@@ -99,7 +100,7 @@ require_once __DIR__ . '/includes/header.php';
                     <?php else: ?>
                         <?php foreach ($terbaru as $row): ?>
                             <tr>
-                                <td><?= htmlspecialchars($row['nik']) ?></td>
+                                <td><?= htmlspecialchars(tampilNik($row['nik'])) ?></td>
                                 <td><a href="penduduk/detail.php?id=<?= (int) $row['id'] ?>"><?= htmlspecialchars($row['nama_lengkap']) ?></a></td>
                                 <td><?= $row['jenis_kelamin'] === 'L' ? 'Laki-laki' : 'Perempuan' ?></td>
                                 <td><?= htmlspecialchars($row['alamat']) ?></td>

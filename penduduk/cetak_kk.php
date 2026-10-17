@@ -9,7 +9,7 @@ $id = (int) ($_GET['id'] ?? 0);
 $stmt = $pdo->prepare('SELECT p.*, w.rt, w.rw, w.kelurahan, w.kecamatan, w.Kabupaten, w.propinsi
                         FROM penduduk p
                         LEFT JOIN wilayah w ON w.id_wilayah = p.id_wilayah
-                        WHERE p.id = ? AND p.status_cd = 1');
+                        WHERE p.id = ? AND p.status_cd <> \'nullified\' AND ' . filterWilayahPenduduk('p.id_wilayah'));
 $stmt->execute([$id]);
 $current = $stmt->fetch();
 
@@ -22,7 +22,7 @@ if (!$current) {
 $stmtAnggota = $pdo->prepare("SELECT p.*, w.rt, w.rw, w.kelurahan, w.kecamatan, w.Kabupaten, w.propinsi
                                FROM penduduk p
                                LEFT JOIN wilayah w ON w.id_wilayah = p.id_wilayah
-                               WHERE p.no_kk = ? AND p.status_cd = 1
+                               WHERE p.no_kk = ? AND p.status_cd <> 'nullified' AND " . filterWilayahPenduduk('p.id_wilayah') . "
                                ORDER BY FIELD(p.status_keluarga, 'Kepala Keluarga', 'Istri', 'Anak', 'Famili Lain'), p.tanggal_lahir ASC");
 $stmtAnggota->execute([$current['no_kk']]);
 $anggota = $stmtAnggota->fetchAll();
@@ -45,7 +45,7 @@ function kkVal($value)
 <html lang="id">
 <head>
     <meta charset="utf-8">
-    <title>Cetak Data Keluarga - <?= htmlspecialchars($current['no_kk']) ?></title>
+    <title>Cetak Data Keluarga - <?= htmlspecialchars(tampilNoKk($current['no_kk'])) ?></title>
     <style>
         body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #111; margin: 24px; }
         .notice { background: #fff3cd; border: 1px solid #ffe69c; padding: 6px 10px; margin-bottom: 16px; font-size: 9.5px; }
@@ -87,7 +87,7 @@ function kkVal($value)
     <img src="../assets/img/garuda-pancasila.jpg" alt="Garuda Pancasila">
     <div class="kop-text">
         <h1>KARTU KELUARGA</h1>
-        <div class="subtitle">No. <?= kkVal($current['no_kk']) ?></div>
+        <div class="subtitle">No. <?= kkVal(tampilNoKk($current['no_kk'])) ?></div>
     </div>
 </div>
 
@@ -129,7 +129,7 @@ function kkVal($value)
             <tr>
                 <td class="no-col"><?= $i + 1 ?></td>
                 <td><?= kkVal($a['nama_lengkap']) ?></td>
-                <td><?= kkVal($a['nik']) ?></td>
+                <td><?= kkVal(tampilNik($a['nik'])) ?></td>
                 <td><?= $a['jenis_kelamin'] === 'L' ? 'Laki-laki' : 'Perempuan' ?></td>
                 <td><?= kkVal($a['tempat_lahir']) ?></td>
                 <td><?= $a['tanggal_lahir'] ? htmlspecialchars(date('d-m-Y', strtotime($a['tanggal_lahir']))) : '-' ?></td>

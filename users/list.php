@@ -5,7 +5,12 @@ requireAdmin();
 
 $pdo = getDB();
 
-$rows = $pdo->query('SELECT id, username, nama_lengkap, level, status_cd, foto_profil, created_at FROM users ORDER BY username ASC')->fetchAll();
+$rows = $pdo->query('SELECT u.id, u.username, u.nama_lengkap, u.level, u.sub_level, u.status_cd, u.foto_profil, u.created_at,
+                            w.rt, w.rw, w.kelurahan, w.kecamatan, w.Kabupaten
+                     FROM users u
+                     LEFT JOIN wilayah w ON w.id_wilayah = u.id_wilayah
+                     ORDER BY u.username ASC')->fetchAll();
+$subLevelLabels = ['rt' => 'RT', 'rw' => 'RW', 'kelurahan' => 'Kelurahan'];
 
 $pageTitle = 'Pengguna';
 require_once __DIR__ . '/../includes/header.php';
@@ -34,6 +39,8 @@ require_once __DIR__ . '/../includes/header.php';
                         <th>Username</th>
                         <th>Nama Lengkap</th>
                         <th>Level</th>
+                        <th>Sub Level</th>
+                        <th>Wilayah</th>
                         <th>Status</th>
                         <th>Dibuat</th>
                         <th class="text-center pe-4">Aksi</th>
@@ -53,6 +60,15 @@ require_once __DIR__ . '/../includes/header.php';
                             <td><?= htmlspecialchars($row['nama_lengkap']) ?></td>
                             <td>
                                 <span class="badge <?= $row['level'] === 'admin' ? 'bg-primary' : 'bg-secondary' ?>"><?= htmlspecialchars(ucfirst($row['level'])) ?></span>
+                            </td>
+                            <td><?= htmlspecialchars($subLevelLabels[$row['sub_level']] ?? '-') ?></td>
+                            <td>
+                                <?php if ($row['rt'] !== null): ?>
+                                    RT <?= htmlspecialchars($row['rt']) ?>/RW <?= htmlspecialchars($row['rw']) ?>
+                                    <div class="small text-muted"><?= htmlspecialchars($row['kelurahan'] . ', ' . $row['kecamatan'] . ', ' . $row['Kabupaten']) ?></div>
+                                <?php else: ?>
+                                    -
+                                <?php endif; ?>
                             </td>
                             <td>
                                 <?php if ($row['status_cd'] === 'active'): ?>

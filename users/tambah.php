@@ -9,8 +9,11 @@ $pdo = getDB();
 $errors = [];
 $form = [
     'username' => '', 'nama_lengkap' => '', 'level' => 'user', 'status_cd' => 'active',
+    'sub_level' => '', 'id_wilayah' => '',
 ];
 $statusOptions = ['active' => 'Aktif', 'inactive' => 'Tidak Aktif'];
+$subLevelOptions = ['rt' => 'RT', 'rw' => 'RW', 'kelurahan' => 'Kelurahan'];
+$wilayahList = $pdo->query("SELECT id_wilayah, propinsi, Kabupaten, kecamatan, kelurahan, rw, rt FROM wilayah WHERE status_cd = 'active' ORDER BY kelurahan ASC, rw ASC, rt ASC")->fetchAll();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     foreach ($form as $key => $default) {
@@ -31,6 +34,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($form['nama_lengkap'] === '') $errors[] = 'Nama lengkap wajib diisi.';
     if (!in_array($form['level'], ['admin', 'user'], true)) $errors[] = 'Level tidak valid.';
     if (!isset($statusOptions[$form['status_cd']])) $errors[] = 'Status tidak valid.';
+    // Divalidasi di sini karena MySQL tidak strict: nilai enum yang salah akan tersimpan sebagai ''.
+    if ($form['sub_level'] !== '' && !isset($subLevelOptions[$form['sub_level']])) $errors[] = 'Sub level tidak valid.';
+    if ($form['id_wilayah'] !== '' && !in_array((int) $form['id_wilayah'], array_map('intval', array_column($wilayahList, 'id_wilayah')), true)) {
+        $errors[] = 'Wilayah yang dipilih tidak aktif atau tidak ditemukan.';
+    }
     if (strlen($password) < 6) $errors[] = 'Password minimal 6 karakter.';
     if ($password !== $passwordConfirm) $errors[] = 'Konfirmasi password tidak sama.';
 
@@ -43,10 +51,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$errors) {
-        $stmt = $pdo->prepare('INSERT INTO users (username, password, nama_lengkap, level, status_cd, foto_profil) VALUES (?,?,?,?,?,?)');
+        $stmt = $pdo->prepare('INSERT INTO users (username, password, nama_lengkap, level, sub_level, id_wilayah, status_cd, foto_profil) VALUES (?,?,?,?,?,?,?,?)');
         $stmt->execute([
             $form['username'], password_hash($password, PASSWORD_DEFAULT),
-            $form['nama_lengkap'], $form['level'], $form['status_cd'], $fotoProfil,
+            $form['nama_lengkap'], $form['level'], $form['sub_level'] ?: null, $form['id_wilayah'] ?: null,
+            $form['status_cd'], $fotoProfil,
         ]);
 
         $_SESSION['flash_success'] = 'Pengguna berhasil ditambahkan.';
@@ -100,6 +109,28 @@ require_once __DIR__ . '/../includes/header.php';
                     <select name="level" class="form-select" required>
                         <option value="user" <?= $form['level'] === 'user' ? 'selected' : '' ?>>User</option>
                         <option value="admin" <?= $form['level'] === 'admin' ? 'selected' : '' ?>>Admin</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Sub Level</label>
+                    <select name="sub_level" class="form-select">
+                        <option value="">-- Pilih Sub Level --</option>
+                        <?php foreach ($subLevelOptions as $value => $label): ?>
+                            <option value="<?= $value ?>" <?= $form['sub_level'] === $value ? 'selected' : '' ?>><?= $label ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Wilayah (RT/RW)</label>
+                    <select name="id_wilayah" class="form-select">
+                        <option value="">-- Pilih Wilayah --</option>
+                        <?php foreach ($wilayahList as $w): ?>
+                            <option value="<?= (int) $w['id_wilayah'] ?>" <?= (string) $form['id_wilayah'] === (string) $w['id_wilayah'] ? 'selected' : '' ?>>
+                                RT <?= htmlspecialchars($w['rt']) ?>/RW <?= htmlspecialchars($w['rw']) ?> -
+                                <?= htmlspecialchars($w['kelurahan']) ?>, <?= htmlspecialchars($w['kecamatan']) ?>,
+                                <?= htmlspecialchars($w['Kabupaten']) ?>
+                            </option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
                 <div class="col-md-6">

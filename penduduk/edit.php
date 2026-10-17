@@ -1,12 +1,12 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/auth.php';
-requireLogin();
+requireAdmin();
 
 $pdo = getDB();
 
 $id = (int) ($_GET['id'] ?? 0);
-$stmt = $pdo->prepare('SELECT * FROM penduduk WHERE id = ? AND status_cd = 1');
+$stmt = $pdo->prepare('SELECT * FROM penduduk WHERE id = ? AND status_cd <> \'nullified\'');
 $stmt->execute([$id]);
 $existing = $stmt->fetch();
 
@@ -18,7 +18,12 @@ if (!$existing) {
 
 $masterPekerjaan = $pdo->query("SELECT nama_pekerjaan FROM master_pekerjaan WHERE status_cd = 1 ORDER BY urutan ASC, nama_pekerjaan ASC")->fetchAll(PDO::FETCH_COLUMN);
 $masterPendidikan = $pdo->query("SELECT nama_pendidikan FROM master_pendidikan WHERE status_cd = 1 ORDER BY urutan ASC, level_pendidikan ASC")->fetchAll(PDO::FETCH_COLUMN);
-$wilayahList = $pdo->query("SELECT id_wilayah, propinsi, Kabupaten, kecamatan, kelurahan, rw, rt FROM wilayah ORDER BY kelurahan ASC, rw ASC, rt ASC")->fetchAll();
+// Hanya wilayah aktif, kecuali wilayah yang sedang dipakai penduduk ini supaya tidak hilang dari pilihan.
+$stmtWilayah = $pdo->prepare("SELECT id_wilayah, propinsi, Kabupaten, kecamatan, kelurahan, rw, rt FROM wilayah
+                              WHERE status_cd = 'active' OR id_wilayah = ?
+                              ORDER BY kelurahan ASC, rw ASC, rt ASC");
+$stmtWilayah->execute([(int) $existing['id_wilayah']]);
+$wilayahList = $stmtWilayah->fetchAll();
 
 $agamaOptions = ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Khonghucu', 'Lainnya'];
 $statusKawinOptions = ['Belum Kawin', 'Kawin', 'Cerai Hidup', 'Cerai Mati'];
@@ -35,7 +40,9 @@ $form = [
     'is_ahli_waris' => (int) $existing['is_ahli_waris'], 'alamat' => $existing['alamat'],
     'id_wilayah' => $existing['id_wilayah'], 'no_telepon' => $existing['no_telepon'],
     'nama_ayah' => $existing['nama_ayah'], 'nama_ibu' => $existing['nama_ibu'], 'kategori' => $existing['kategori'],
+    'status_cd' => $existing['status_cd'],
 ];
+$statusOptions = ['active' => 'Aktif', 'inactive' => 'Tidak Aktif', 'nullified' => 'Nullified (Dihapus)'];
 
 function uploadFotoEdit(string $field, string $subdir): ?string
 {
@@ -75,7 +82,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($form['nik'] === '') $errors[] = 'NIK wajib diisi.';
+    if (!isset($statusOptions[$form['status_cd']])) $errors[] = 'Status tidak valid.';
     if ($form['no_kk'] === '') $errors[] = 'No. KK wajib diisi.';
+    if ($form['id_wilayah'] !== '' && !in_array((int) $form['id_wilayah'], array_map('intval', array_column($wilayahList, 'id_wilayah')), true)) {
+        $errors[] = 'Wilayah yang dipilih tidak aktif atau tidak ditemukan.';
+    }
     if ($form['nama_lengkap'] === '') $errors[] = 'Nama lengkap wajib diisi.';
     if ($form['tanggal_lahir'] === '') $errors[] = 'Tanggal lahir wajib diisi.';
     if ($form['agama'] === '') $errors[] = 'Agama wajib dipilih.';
@@ -83,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($form['alamat'] === '') $errors[] = 'Alamat wajib diisi.';
 
     if (!$errors && $form['nik'] !== '') {
-        $cek = $pdo->prepare('SELECT COUNT(*) FROM penduduk WHERE nik = ? AND status_cd = 1 AND id != ?');
+        $cek = $pdo->prepare('SELECT COUNT(*) FROM penduduk WHERE nik = ? AND status_cd <> \'nullified\' AND id != ?');
         $cek->execute([$form['nik'], $id]);
         if ((int) $cek->fetchColumn() > 0) {
             $errors[] = 'NIK sudah terdaftar untuk penduduk lain.';
@@ -111,14 +122,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             nik = ?, no_kk = ?, nama_lengkap = ?, tempat_lahir = ?, tanggal_lahir = ?, jenis_kelamin = ?,
             agama = ?, pendidikan = ?, pekerjaan = ?, status_kawin = ?, status_keluarga = ?, is_ahli_waris = ?,
             alamat = ?, id_wilayah = ?, no_telepon = ?, nama_ayah = ?, nama_ibu = ?, umur = ?, kategori = ?,
-            foto_ktp = ?, foto_kk = ?
+            foto_ktp = ?, foto_kk = ?, status_cd = ?
             WHERE id = ?");
         $stmt->execute([
             $form['nik'], $form['no_kk'], $form['nama_lengkap'], $form['tempat_lahir'], $form['tanggal_lahir'],
             $form['jenis_kelamin'], $form['agama'], $form['pendidikan'] ?: null, $form['pekerjaan'] ?: null,
             $form['status_kawin'], $form['status_keluarga'] ?: null, $form['is_ahli_waris'], $form['alamat'],
             $form['id_wilayah'] ?: null, $form['no_telepon'] ?: null, $form['nama_ayah'] ?: null,
-            $form['nama_ibu'] ?: null, $umur, $form['kategori'] ?: null, $fotoKtpPath, $fotoKkPath, $id,
+            $form['nama_ibu'] ?: null, $umur, $form['kategori'] ?: null, $fotoKtpPath, $fotoKkPath, $form['status_cd'], $id,
         ]);
 
         $_SESSION['flash_success'] = 'Data penduduk berhasil diperbarui.';
@@ -246,6 +257,15 @@ require_once __DIR__ . '/../includes/header.php';
                                 <option value="<?= $opt ?>" <?= $form['kategori'] === $opt ? 'selected' : '' ?>><?= $opt ?></option>
                             <?php endforeach; ?>
                         </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Status <span class="text-danger">*</span></label>
+                        <select name="status_cd" class="form-select" required>
+                            <?php foreach ($statusOptions as $value => $label): ?>
+                                <option value="<?= $value ?>" <?= $form['status_cd'] === $value ? 'selected' : '' ?>><?= $label ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="form-text">Nullified = data dianggap dihapus dan tidak tampil lagi di daftar.</div>
                     </div>
                 </div>
             </div>

@@ -36,11 +36,16 @@ $currentPage = basename($_SERVER['SCRIPT_NAME']);
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/surat/') !== false ? 'active' : '' ?>" href="<?= $base ?>surat/list.php">
+                        <i class="bi bi-file-earmark-text"></i> Surat Keterangan
+                    </a>
+                </li>
+                <?php if (isAdmin()): ?>
+                <li class="nav-item">
                     <a class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/wilayah/') !== false ? 'active' : '' ?>" href="<?= $base ?>wilayah/list.php">
                         <i class="bi bi-geo-alt-fill"></i> Master Wilayah
                     </a>
                 </li>
-                <?php if (isAdmin()): ?>
                 <li class="nav-item">
                     <a class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/users/') !== false ? 'active' : '' ?>" href="<?= $base ?>users/list.php">
                         <i class="bi bi-person-gear"></i> Pengguna

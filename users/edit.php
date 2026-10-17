@@ -7,7 +7,7 @@ requireAdmin();
 $pdo = getDB();
 
 $id = (int) ($_GET['id'] ?? 0);
-$stmt = $pdo->prepare('SELECT id, username, nama_lengkap, level, status_cd, foto_profil FROM users WHERE id = ?');
+$stmt = $pdo->prepare('SELECT id, username, nama_lengkap, level, sub_level, id_wilayah, status_cd, foto_profil FROM users WHERE id = ?');
 $stmt->execute([$id]);
 $existing = $stmt->fetch();
 
@@ -23,8 +23,17 @@ $errors = [];
 $form = [
     'username' => $existing['username'], 'nama_lengkap' => $existing['nama_lengkap'],
     'level' => $existing['level'], 'status_cd' => $existing['status_cd'],
+    'sub_level' => (string) $existing['sub_level'], 'id_wilayah' => (string) $existing['id_wilayah'],
 ];
 $statusOptions = ['active' => 'Aktif', 'inactive' => 'Tidak Aktif'];
+$subLevelOptions = ['rt' => 'RT', 'rw' => 'RW', 'kelurahan' => 'Kelurahan'];
+
+// Hanya wilayah aktif, kecuali wilayah yang sedang dipakai pengguna ini supaya tidak hilang dari pilihan.
+$stmtWilayah = $pdo->prepare("SELECT id_wilayah, propinsi, Kabupaten, kecamatan, kelurahan, rw, rt FROM wilayah
+                              WHERE status_cd = 'active' OR id_wilayah = ?
+                              ORDER BY kelurahan ASC, rw ASC, rt ASC");
+$stmtWilayah->execute([(int) $existing['id_wilayah']]);
+$wilayahList = $stmtWilayah->fetchAll();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     foreach ($form as $key => $default) {
@@ -48,6 +57,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Admin tidak boleh menurunkan level atau menonaktifkan akunnya sendiri,
     // supaya tidak terkunci dari halaman pengguna.
+    // Divalidasi di sini karena MySQL tidak strict: nilai enum yang salah akan tersimpan sebagai ''.
+    if ($form['sub_level'] !== '' && !isset($subLevelOptions[$form['sub_level']])) $errors[] = 'Sub level tidak valid.';
+    if ($form['id_wilayah'] !== '' && !in_array((int) $form['id_wilayah'], array_map('intval', array_column($wilayahList, 'id_wilayah')), true)) {
+        $errors[] = 'Wilayah yang dipilih tidak aktif atau tidak ditemukan.';
+    }
+
     if ($isSelf && $form['level'] !== 'admin') $errors[] = 'Anda tidak bisa mengubah level akun Anda sendiri.';
     if ($isSelf && $form['status_cd'] !== 'active') $errors[] = 'Anda tidak bisa menonaktifkan akun Anda sendiri.';
 
@@ -68,8 +83,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$errors) {
-        $fields = 'username = ?, nama_lengkap = ?, level = ?, status_cd = ?, foto_profil = ?';
-        $params = [$form['username'], $form['nama_lengkap'], $form['level'], $form['status_cd'], $fotoProfil];
+        $fields = 'username = ?, nama_lengkap = ?, level = ?, sub_level = ?, id_wilayah = ?, status_cd = ?, foto_profil = ?';
+        $params = [
+            $form['username'], $form['nama_lengkap'], $form['level'],
+            $form['sub_level'] ?: null, $form['id_wilayah'] ?: null, $form['status_cd'], $fotoProfil,
+        ];
         if ($password !== '') {
             $fields .= ', password = ?';
             $params[] = password_hash($password, PASSWORD_DEFAULT);
@@ -142,6 +160,28 @@ require_once __DIR__ . '/../includes/header.php';
                     <select name="level" class="form-select" required>
                         <option value="user" <?= $form['level'] === 'user' ? 'selected' : '' ?>>User</option>
                         <option value="admin" <?= $form['level'] === 'admin' ? 'selected' : '' ?>>Admin</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Sub Level</label>
+                    <select name="sub_level" class="form-select">
+                        <option value="">-- Pilih Sub Level --</option>
+                        <?php foreach ($subLevelOptions as $value => $label): ?>
+                            <option value="<?= $value ?>" <?= $form['sub_level'] === $value ? 'selected' : '' ?>><?= $label ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Wilayah (RT/RW)</label>
+                    <select name="id_wilayah" class="form-select">
+                        <option value="">-- Pilih Wilayah --</option>
+                        <?php foreach ($wilayahList as $w): ?>
+                            <option value="<?= (int) $w['id_wilayah'] ?>" <?= (string) $form['id_wilayah'] === (string) $w['id_wilayah'] ? 'selected' : '' ?>>
+                                RT <?= htmlspecialchars($w['rt']) ?>/RW <?= htmlspecialchars($w['rw']) ?> -
+                                <?= htmlspecialchars($w['kelurahan']) ?>, <?= htmlspecialchars($w['kecamatan']) ?>,
+                                <?= htmlspecialchars($w['Kabupaten']) ?>
+                            </option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
                 <div class="col-md-6">

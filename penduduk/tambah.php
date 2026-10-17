@@ -7,7 +7,10 @@ $pdo = getDB();
 
 $masterPekerjaan = $pdo->query("SELECT nama_pekerjaan FROM master_pekerjaan WHERE status_cd = 1 ORDER BY urutan ASC, nama_pekerjaan ASC")->fetchAll(PDO::FETCH_COLUMN);
 $masterPendidikan = $pdo->query("SELECT nama_pendidikan FROM master_pendidikan WHERE status_cd = 1 ORDER BY urutan ASC, level_pendidikan ASC")->fetchAll(PDO::FETCH_COLUMN);
-$wilayahList = $pdo->query("SELECT id_wilayah, propinsi, Kabupaten, kecamatan, kelurahan, rw, rt FROM wilayah ORDER BY kelurahan ASC, rw ASC, rt ASC")->fetchAll();
+// Hanya wilayah aktif dalam lingkup pengguna (admin: semua), supaya penduduk yang ditambahkan tetap terlihat olehnya.
+$wilayahList = $pdo->query("SELECT id_wilayah, propinsi, Kabupaten, kecamatan, kelurahan, rw, rt FROM wilayah
+                            WHERE status_cd = 'active' AND " . filterWilayahPenduduk('id_wilayah') . "
+                            ORDER BY kelurahan ASC, rw ASC, rt ASC")->fetchAll();
 
 $agamaOptions = ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Khonghucu', 'Lainnya'];
 $statusKawinOptions = ['Belum Kawin', 'Kawin', 'Cerai Hidup', 'Cerai Mati'];
@@ -61,6 +64,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($form['nik'] === '') $errors[] = 'NIK wajib diisi.';
     if ($form['no_kk'] === '') $errors[] = 'No. KK wajib diisi.';
+    if (!isAdmin() && $form['id_wilayah'] === '') $errors[] = 'Wilayah (RT/RW) wajib dipilih.';
+    if ($form['id_wilayah'] !== '' && !in_array((int) $form['id_wilayah'], array_map('intval', array_column($wilayahList, 'id_wilayah')), true)) {
+        $errors[] = 'Wilayah yang dipilih tidak aktif atau tidak ditemukan.';
+    }
     if ($form['nama_lengkap'] === '') $errors[] = 'Nama lengkap wajib diisi.';
     if ($form['tanggal_lahir'] === '') $errors[] = 'Tanggal lahir wajib diisi.';
     if ($form['agama'] === '') $errors[] = 'Agama wajib dipilih.';
@@ -68,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($form['alamat'] === '') $errors[] = 'Alamat wajib diisi.';
 
     if (!$errors && $form['nik'] !== '') {
-        $cek = $pdo->prepare('SELECT COUNT(*) FROM penduduk WHERE nik = ? AND status_cd = 1');
+        $cek = $pdo->prepare('SELECT COUNT(*) FROM penduduk WHERE nik = ? AND status_cd <> \'nullified\'');
         $cek->execute([$form['nik']]);
         if ((int) $cek->fetchColumn() > 0) {
             $errors[] = 'NIK sudah terdaftar untuk penduduk lain.';
@@ -93,8 +100,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $pdo->prepare("INSERT INTO penduduk
             (nik, no_kk, nama_lengkap, tempat_lahir, tanggal_lahir, jenis_kelamin, agama, pendidikan, pekerjaan,
              status_kawin, status_keluarga, is_ahli_waris, alamat, id_wilayah, no_telepon, nama_ayah, nama_ibu,
-             umur, kategori, foto_ktp, foto_kk, status_cd)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)");
+             umur, kategori, foto_ktp, foto_kk)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
         $stmt->execute([
             $form['nik'], $form['no_kk'], $form['nama_lengkap'], $form['tempat_lahir'], $form['tanggal_lahir'],
             $form['jenis_kelamin'], $form['agama'], $form['pendidikan'] ?: null, $form['pekerjaan'] ?: null,

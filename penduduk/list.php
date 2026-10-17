@@ -10,7 +10,7 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 $perPage = 10;
 $offset = ($page - 1) * $perPage;
 
-$where = 'WHERE p.status_cd = 1';
+$where = "WHERE p.status_cd <> 'nullified' AND " . filterWilayahPenduduk('p.id_wilayah');
 $params = [];
 
 if ($search !== '') {
@@ -31,7 +31,7 @@ $totalRows = (int) (function () use ($pdo, $where, $params) {
 $totalPages = max(1, (int) ceil($totalRows / $perPage));
 
 $stmt = $pdo->prepare("SELECT p.id, p.nik, p.no_kk, p.nama_lengkap, p.jenis_kelamin, p.tanggal_lahir, p.alamat,
-                               w.rt, w.rw, p.no_telepon
+                               w.rt, w.rw, p.no_telepon, p.status_cd
                         FROM penduduk p
                         LEFT JOIN wilayah w ON w.id_wilayah = p.id_wilayah
                         $where
@@ -94,12 +94,13 @@ require_once __DIR__ . '/../includes/header.php';
                         <th>Alamat</th>
                         <th>RT/RW</th>
                         <th>No. Telepon</th>
+                        <th>Status</th>
                         <th class="text-center pe-4">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($rows)): ?>
-                        <tr><td colspan="9" class="text-center text-muted py-5">
+                        <tr><td colspan="10" class="text-center text-muted py-5">
                             <i class="bi bi-inbox fs-2 d-block mb-2"></i>
                             Tidak ada data penduduk<?= $search !== '' ? ' yang cocok dengan pencarian' : '' ?>.
                         </td></tr>
@@ -114,19 +115,28 @@ require_once __DIR__ . '/../includes/header.php';
                                         <?= $row['jenis_kelamin'] === 'L' ? 'Laki-laki' : 'Perempuan' ?>
                                     </span>
                                 </td>
-                                <td><?= htmlspecialchars($row['nik']) ?></td>
-                                <td><?= htmlspecialchars($row['no_kk']) ?></td>
+                                <td><?= htmlspecialchars(tampilNik($row['nik'])) ?></td>
+                                <td><?= htmlspecialchars(tampilNoKk($row['no_kk'])) ?></td>
                                 <td><?= htmlspecialchars(date('d-m-Y', strtotime($row['tanggal_lahir']))) ?></td>
                                 <td><?= htmlspecialchars($row['alamat']) ?></td>
                                 <td><?= htmlspecialchars(($row['rt'] ?: '-') . '/' . ($row['rw'] ?: '-')) ?></td>
                                 <td><?= htmlspecialchars($row['no_telepon'] ?: '-') ?></td>
+                                <td>
+                                    <?php if ($row['status_cd'] === 'active'): ?>
+                                        <span class="badge bg-success">Aktif</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-secondary">Tidak Aktif</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td class="text-center text-nowrap pe-4">
                                     <a href="detail.php?id=<?= (int) $row['id'] ?>" class="btn btn-sm btn-outline-secondary" title="Detail"><i class="bi bi-eye"></i></a>
+                                    <?php if (isAdmin()): ?>
                                     <a href="edit.php?id=<?= (int) $row['id'] ?>" class="btn btn-sm btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
                                     <a href="hapus.php?id=<?= (int) $row['id'] ?>" class="btn btn-sm btn-outline-danger" title="Hapus"
                                        onclick="return confirm('Hapus data penduduk \'<?= htmlspecialchars(addslashes($row['nama_lengkap'])) ?>\'?');">
                                         <i class="bi bi-trash"></i>
                                     </a>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

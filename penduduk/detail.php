@@ -9,7 +9,7 @@ $id = (int) ($_GET['id'] ?? 0);
 $stmt = $pdo->prepare('SELECT p.*, w.rt, w.rw
                         FROM penduduk p
                         LEFT JOIN wilayah w ON w.id_wilayah = p.id_wilayah
-                        WHERE p.id = ? AND p.status_cd = 1');
+                        WHERE p.id = ? AND p.status_cd <> \'nullified\' AND ' . filterWilayahPenduduk('p.id_wilayah'));
 $stmt->execute([$id]);
 $row = $stmt->fetch();
 
@@ -35,7 +35,9 @@ require_once __DIR__ . '/../includes/header.php';
     <h4 class="mb-0">Detail Penduduk</h4>
     <div>
         <a href="cetak_kk.php?id=<?= (int) $row['id'] ?>" class="btn btn-sm btn-outline-dark" target="_blank"><i class="bi bi-printer"></i> Cetak Kartu Keluarga</a>
+        <?php if (isAdmin()): ?>
         <a href="edit.php?id=<?= (int) $row['id'] ?>" class="btn btn-sm btn-primary"><i class="bi bi-pencil"></i> Edit</a>
+        <?php endif; ?>
         <a href="list.php" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Kembali</a>
     </div>
 </div>
@@ -44,8 +46,8 @@ require_once __DIR__ . '/../includes/header.php';
     <div class="card-body">
         <div class="row">
             <?php
-            field('NIK', $row['nik']);
-            field('No. KK', $row['no_kk']);
+            field('NIK', tampilNik($row['nik']));
+            field('No. KK', tampilNoKk($row['no_kk']));
             field('Nama Lengkap', $row['nama_lengkap']);
             field('Tempat, Tanggal Lahir', trim($row['tempat_lahir'] . ', ' . date('d-m-Y', strtotime($row['tanggal_lahir'])), ', '));
             field('Umur', $row['umur'] !== null ? $row['umur'] . ' tahun' : null);
