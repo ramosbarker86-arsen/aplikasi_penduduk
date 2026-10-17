@@ -1,8 +1,8 @@
 -- Seed data awal untuk aplikasi_penduduk
 -- Jalankan sekali saja setelah skema database dibuat.
 
-INSERT INTO users (username, password, nama_lengkap, level) VALUES
-('admin', '$2y$10$vphXaB2GGRKaCe6zYRLZz.akzhcRZ48uQDQXMYODW9ceCMYPFlPne', 'Administrator', 'admin');
+INSERT INTO users (username, password, nama_lengkap, level, status_cd) VALUES
+('admin', '$2y$10$vphXaB2GGRKaCe6zYRLZz.akzhcRZ48uQDQXMYODW9ceCMYPFlPne', 'Administrator', 'admin', 'active');
 
 INSERT INTO master_pendidikan (kode_pendidikan, nama_pendidikan, level_pendidikan, urutan, status_cd) VALUES
 ('TS', 'Tidak/Belum Sekolah', 0, 1, 1),

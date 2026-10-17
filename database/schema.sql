@@ -434,7 +434,8 @@ CREATE TABLE `users` (
   `nama_lengkap` varchar(100) NOT NULL,
   `level` enum('admin','user') DEFAULT 'user',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `foto_profil` varchar(255) DEFAULT NULL
+  `foto_profil` varchar(255) DEFAULT NULL,
+  `status_cd` enum('active','inactive') NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci ROW_FORMAT=DYNAMIC;
 
 --

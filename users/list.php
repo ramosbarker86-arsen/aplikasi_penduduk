@@ -5,7 +5,7 @@ requireAdmin();
 
 $pdo = getDB();
 
-$rows = $pdo->query('SELECT id, username, nama_lengkap, level, foto_profil, created_at FROM users ORDER BY username ASC')->fetchAll();
+$rows = $pdo->query('SELECT id, username, nama_lengkap, level, status_cd, foto_profil, created_at FROM users ORDER BY username ASC')->fetchAll();
 
 $pageTitle = 'Pengguna';
 require_once __DIR__ . '/../includes/header.php';
@@ -34,6 +34,7 @@ require_once __DIR__ . '/../includes/header.php';
                         <th>Username</th>
                         <th>Nama Lengkap</th>
                         <th>Level</th>
+                        <th>Status</th>
                         <th class="pe-4">Dibuat</th>
                     </tr>
                 </thead>
@@ -51,6 +52,13 @@ require_once __DIR__ . '/../includes/header.php';
                             <td><?= htmlspecialchars($row['nama_lengkap']) ?></td>
                             <td>
                                 <span class="badge <?= $row['level'] === 'admin' ? 'bg-primary' : 'bg-secondary' ?>"><?= htmlspecialchars(ucfirst($row['level'])) ?></span>
+                            </td>
+                            <td>
+                                <?php if ($row['status_cd'] === 'active'): ?>
+                                    <span class="badge bg-success">Aktif</span>
+                                <?php else: ?>
+                                    <span class="badge bg-danger">Tidak Aktif</span>
+                                <?php endif; ?>
                             </td>
                             <td class="pe-4"><?= htmlspecialchars(date('d-m-Y H:i', strtotime($row['created_at']))) ?></td>
                         </tr>

@@ -17,11 +17,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Username dan password wajib diisi.';
     } else {
         $pdo = getDB();
-        $stmt = $pdo->prepare('SELECT id, username, password, nama_lengkap, level FROM users WHERE username = ? LIMIT 1');
+        $stmt = $pdo->prepare('SELECT id, username, password, nama_lengkap, level, status_cd FROM users WHERE username = ? LIMIT 1');
         $stmt->execute([$username]);
         $user = $stmt->fetch();
 
-        if ($user && password_verify($password, $user['password'])) {
+        if (!$user || !password_verify($password, $user['password'])) {
+            $error = 'Username atau password salah.';
+        } elseif ($user['status_cd'] !== 'active') {
+            // Status dicek setelah password benar, supaya status akun tidak bocor ke orang lain.
+            $error = 'Akun Anda tidak aktif. Hubungi administrator.';
+        } else {
             session_regenerate_id(true);
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
@@ -30,8 +35,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: index.php');
             exit;
         }
-
-        $error = 'Username atau password salah.';
     }
 }
 ?>

@@ -7,8 +7,9 @@ $pdo = getDB();
 
 $errors = [];
 $form = [
-    'username' => '', 'nama_lengkap' => '', 'level' => 'user',
+    'username' => '', 'nama_lengkap' => '', 'level' => 'user', 'status_cd' => 'active',
 ];
+$statusOptions = ['active' => 'Aktif', 'inactive' => 'Tidak Aktif'];
 
 function uploadFotoProfil(string $field): ?string
 {
@@ -59,6 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($form['nama_lengkap'] === '') $errors[] = 'Nama lengkap wajib diisi.';
     if (!in_array($form['level'], ['admin', 'user'], true)) $errors[] = 'Level tidak valid.';
+    if (!isset($statusOptions[$form['status_cd']])) $errors[] = 'Status tidak valid.';
     if (strlen($password) < 6) $errors[] = 'Password minimal 6 karakter.';
     if ($password !== $passwordConfirm) $errors[] = 'Konfirmasi password tidak sama.';
 
@@ -71,10 +73,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$errors) {
-        $stmt = $pdo->prepare('INSERT INTO users (username, password, nama_lengkap, level, foto_profil) VALUES (?,?,?,?,?)');
+        $stmt = $pdo->prepare('INSERT INTO users (username, password, nama_lengkap, level, status_cd, foto_profil) VALUES (?,?,?,?,?,?)');
         $stmt->execute([
             $form['username'], password_hash($password, PASSWORD_DEFAULT),
-            $form['nama_lengkap'], $form['level'], $fotoProfil,
+            $form['nama_lengkap'], $form['level'], $form['status_cd'], $fotoProfil,
         ]);
 
         $_SESSION['flash_success'] = 'Pengguna berhasil ditambahkan.';
@@ -128,6 +130,14 @@ require_once __DIR__ . '/../includes/header.php';
                     <select name="level" class="form-select" required>
                         <option value="user" <?= $form['level'] === 'user' ? 'selected' : '' ?>>User</option>
                         <option value="admin" <?= $form['level'] === 'admin' ? 'selected' : '' ?>>Admin</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Status <span class="text-danger">*</span></label>
+                    <select name="status_cd" class="form-select" required>
+                        <?php foreach ($statusOptions as $value => $label): ?>
+                            <option value="<?= $value ?>" <?= $form['status_cd'] === $value ? 'selected' : '' ?>><?= $label ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
                 <div class="col-md-6">
