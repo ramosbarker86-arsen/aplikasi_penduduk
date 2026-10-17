@@ -35,7 +35,8 @@ require_once __DIR__ . '/../includes/header.php';
                         <th>Nama Lengkap</th>
                         <th>Level</th>
                         <th>Status</th>
-                        <th class="pe-4">Dibuat</th>
+                        <th>Dibuat</th>
+                        <th class="text-center pe-4">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -60,7 +61,10 @@ require_once __DIR__ . '/../includes/header.php';
                                     <span class="badge bg-danger">Tidak Aktif</span>
                                 <?php endif; ?>
                             </td>
-                            <td class="pe-4"><?= htmlspecialchars(date('d-m-Y H:i', strtotime($row['created_at']))) ?></td>
+                            <td><?= htmlspecialchars(date('d-m-Y H:i', strtotime($row['created_at']))) ?></td>
+                            <td class="text-center text-nowrap pe-4">
+                                <a href="edit.php?id=<?= (int) $row['id'] ?>" class="btn btn-sm btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
