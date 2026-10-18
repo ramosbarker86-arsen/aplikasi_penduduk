@@ -40,7 +40,17 @@ $currentPage = basename($_SERVER['SCRIPT_NAME']);
                         <i class="bi bi-file-earmark-text"></i> Surat Keterangan
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/kegiatan/') !== false ? 'active' : '' ?>" href="<?= $base ?>kegiatan/list.php">
+                        <i class="bi bi-calendar-event"></i> Kegiatan
+                    </a>
+                </li>
                 <?php if (isAdmin()): ?>
+                <li class="nav-item">
+                    <a class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/berita/') !== false ? 'active' : '' ?>" href="<?= $base ?>berita/list.php">
+                        <i class="bi bi-newspaper"></i> Berita
+                    </a>
+                </li>
                 <li class="nav-item">
                     <a class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/wilayah/') !== false ? 'active' : '' ?>" href="<?= $base ?>wilayah/list.php">
                         <i class="bi bi-geo-alt-fill"></i> Master Wilayah

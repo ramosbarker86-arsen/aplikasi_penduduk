@@ -110,11 +110,11 @@ function requireAdmin()
 }
 
 // Mengembalikan path relatif ke root aplikasi, supaya link konsisten baik diakses
-// dari root (index.php) maupun dari dalam subfolder (penduduk/, wilayah/, users/, surat/).
+// dari root (index.php) maupun dari dalam subfolder (penduduk/, wilayah/, users/, surat/, berita/, kegiatan/).
 function basePath()
 {
     $script = $_SERVER['SCRIPT_NAME'];
-    foreach (['/penduduk/', '/wilayah/', '/users/', '/surat/'] as $dir) {
+    foreach (['/penduduk/', '/wilayah/', '/users/', '/surat/', '/berita/', '/kegiatan/'] as $dir) {
         if (strpos($script, $dir) !== false) {
             return '../';
         }

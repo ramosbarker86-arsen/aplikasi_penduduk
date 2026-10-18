@@ -1,7 +1,13 @@
-# File upload (scan KTP/KK) berisi data pribadi
+# File upload (scan KTP/KK, foto profil) berisi data pribadi
 uploads/**
 !uploads/**/
 !uploads/**/.gitkeep
+
+# Kecuali foto berita & kegiatan: konten publik, pasangan dari database/data_berita.sql
+!uploads/berita/*.jpg
+!uploads/berita/*.jpeg
+!uploads/berita/*.png
+!uploads/berita/*.webp
 
 # Dump database lengkap berisi data penduduk; gunakan database/schema.sql
 database/aplikasi_penduduk.sql

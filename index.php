@@ -25,9 +25,14 @@ require_once __DIR__ . '/includes/header.php';
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h4 class="mb-0">Dashboard</h4>
-    <a href="penduduk/tambah.php" class="btn btn-primary btn-sm">
-        <i class="bi bi-plus-lg"></i> Tambah Penduduk
-    </a>
+    <div class="d-flex gap-2">
+        <a href="home.php" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-house-door"></i> Halaman Home
+        </a>
+        <a href="penduduk/tambah.php" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg"></i> Tambah Penduduk
+        </a>
+    </div>
 </div>
 
 <div class="row g-3 mb-4">
