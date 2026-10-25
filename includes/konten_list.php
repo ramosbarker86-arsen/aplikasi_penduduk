@@ -163,10 +163,12 @@ require_once __DIR__ . '/header.php';
                                     <?php if (!empty($modul['cetak'])): ?>
                                         <a href="cetak.php?id=<?= (int) $row['id'] ?>" class="btn btn-sm btn-outline-dark" title="Cetak Laporan" target="_blank"><i class="bi bi-printer"></i></a>
                                     <?php endif; ?>
+                                    <?php if (isAdmin()): ?>
                                     <a href="hapus.php?id=<?= (int) $row['id'] ?>" class="btn btn-sm btn-outline-danger" title="Hapus"
                                        onclick="return confirm('Hapus <?= $namaKecil ?> ini? Tindakan ini tidak bisa dibatalkan.');">
                                         <i class="bi bi-trash"></i>
                                     </a>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

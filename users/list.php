@@ -1,14 +1,17 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/auth.php';
-requireAdmin();
+requireAkses('pengguna');
 
 $pdo = getDB();
 
+// Selain admin tidak melihat akun admin.
 $rows = $pdo->query('SELECT u.id, u.username, u.nama_lengkap, u.level, u.sub_level, u.status_cd, u.foto_profil, u.created_at,
+                            ' . implode(', ', array_map(fn($m) => "u.$m", array_keys(AKSES_MENU))) . ',
                             w.rt, w.rw, w.kelurahan, w.kecamatan, w.Kabupaten
                      FROM users u
                      LEFT JOIN wilayah w ON w.id_wilayah = u.id_wilayah
+                     ' . (isAdmin() ? '' : "WHERE u.level <> 'admin'") . '
                      ORDER BY u.username ASC')->fetchAll();
 $subLevelLabels = ['rt' => 'RT', 'rw' => 'RW', 'kelurahan' => 'Kelurahan'];
 
@@ -41,6 +44,7 @@ require_once __DIR__ . '/../includes/header.php';
                         <th>Level</th>
                         <th>Sub Level</th>
                         <th>Wilayah</th>
+                        <th>Hak Akses</th>
                         <th>Status</th>
                         <th>Dibuat</th>
                         <th class="text-center pe-4">Aksi</th>
@@ -68,6 +72,17 @@ require_once __DIR__ . '/../includes/header.php';
                                     <div class="small text-muted"><?= htmlspecialchars($row['kelurahan'] . ', ' . $row['kecamatan'] . ', ' . $row['Kabupaten']) ?></div>
                                 <?php else: ?>
                                     -
+                                <?php endif; ?>
+                            </td>
+                            <td style="max-width: 260px">
+                                <?php $dimiliki = array_filter(AKSES_MENU, fn($m) => $row[$m] === 'ya', ARRAY_FILTER_USE_KEY); ?>
+                                <?php if (count($dimiliki) === count(AKSES_MENU)): ?>
+                                    <span class="badge bg-primary-subtle text-primary-emphasis">Semua menu</span>
+                                <?php else: ?>
+                                    <?php foreach ($dimiliki as $label): ?>
+                                        <span class="badge bg-light text-dark border fw-normal"><?= htmlspecialchars($label) ?></span>
+                                    <?php endforeach; ?>
+                                    <?php if (!$dimiliki): ?><span class="text-muted small">Tidak ada</span><?php endif; ?>
                                 <?php endif; ?>
                             </td>
                             <td>

@@ -324,6 +324,7 @@ CREATE TABLE `penduduk` (
   `alamat` text NOT NULL,
   `id_wilayah` int(3) DEFAULT NULL,
   `no_telepon` varchar(15) DEFAULT NULL,
+  `email` varchar(100) DEFAULT NULL,
   `nama_ayah` varchar(100) DEFAULT NULL,
   `nama_ibu` varchar(100) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -437,7 +438,13 @@ CREATE TABLE `users` (
   `id_wilayah` int(10) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `foto_profil` varchar(255) DEFAULT NULL,
-  `status_cd` enum('active','inactive') NOT NULL
+  `status_cd` enum('active','inactive') NOT NULL,
+  `data_penduduk` enum('ya','tidak') NOT NULL DEFAULT 'ya' COMMENT 'Akses menu Data Penduduk',
+  `surat_keterangan` enum('ya','tidak') NOT NULL DEFAULT 'ya' COMMENT 'Akses menu Surat Keterangan',
+  `kegiatan` enum('ya','tidak') NOT NULL DEFAULT 'ya' COMMENT 'Akses menu Kegiatan',
+  `berita` enum('ya','tidak') NOT NULL DEFAULT 'tidak' COMMENT 'Akses menu Berita',
+  `master_wilayah` enum('ya','tidak') NOT NULL DEFAULT 'tidak' COMMENT 'Akses menu Master Wilayah',
+  `pengguna` enum('ya','tidak') NOT NULL DEFAULT 'tidak' COMMENT 'Akses menu Pengguna'
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci ROW_FORMAT=DYNAMIC;
 
 --
@@ -747,6 +754,7 @@ CREATE TABLE `surat_keterangan` (
   `kewarganegaraan` varchar(30) NOT NULL DEFAULT 'WNI',
   `keperluan` varchar(500) NOT NULL COMMENT 'Daftar keperluan, dipisah koma',
   `keperluan_lainnya` varchar(255) DEFAULT NULL,
+  `status_cd` enum('active','inactive') NOT NULL DEFAULT 'active' COMMENT 'active = Aktif, inactive = Dihapus',
   `created_by` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),

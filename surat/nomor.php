@@ -3,8 +3,8 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/surat.php';
-// Semua pengguna boleh membuat surat; data penduduk dibatasi lingkup wilayahnya (filterWilayahPenduduk).
-requireLogin();
+// Butuh akses menu Surat Keterangan; data penduduk dibatasi lingkup wilayah pengguna (filterWilayahPenduduk).
+requireAkses('surat_keterangan');
 
 header('Content-Type: application/json; charset=utf-8');
 

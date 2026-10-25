@@ -2,16 +2,18 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/upload_profil.php';
-requireAdmin();
+requireAkses('pengguna');
 
 $pdo = getDB();
 
 $id = (int) ($_GET['id'] ?? 0);
-$stmt = $pdo->prepare('SELECT id, username, nama_lengkap, level, sub_level, id_wilayah, status_cd, foto_profil FROM users WHERE id = ?');
+$stmt = $pdo->prepare('SELECT id, username, nama_lengkap, level, sub_level, id_wilayah, status_cd, foto_profil, '
+                      . implode(', ', array_keys(AKSES_MENU)) . ' FROM users WHERE id = ?');
 $stmt->execute([$id]);
 $existing = $stmt->fetch();
 
-if (!$existing) {
+// Selain admin tidak boleh membuka/mengubah akun admin.
+if (!$existing || (!isAdmin() && $existing['level'] === 'admin')) {
     $_SESSION['flash_error'] = 'Data pengguna tidak ditemukan.';
     header('Location: list.php');
     exit;
@@ -27,6 +29,9 @@ $form = [
 ];
 $statusOptions = ['active' => 'Aktif', 'inactive' => 'Tidak Aktif'];
 $subLevelOptions = ['rt' => 'RT', 'rw' => 'RW', 'kelurahan' => 'Kelurahan'];
+$levelOptions = isAdmin() ? ['user' => 'User', 'admin' => 'Admin'] : ['user' => 'User'];
+$akses = array_intersect_key($existing, AKSES_MENU);
+$kunciAkses = $isSelf;
 
 // Hanya wilayah aktif, kecuali wilayah yang sedang dipakai pengguna ini supaya tidak hilang dari pilihan.
 $stmtWilayah = $pdo->prepare("SELECT id_wilayah, propinsi, Kabupaten, kecamatan, kelurahan, rw, rt FROM wilayah
@@ -52,18 +57,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt->fetchColumn() > 0) $errors[] = 'Username sudah digunakan.';
     }
     if ($form['nama_lengkap'] === '') $errors[] = 'Nama lengkap wajib diisi.';
-    if (!in_array($form['level'], ['admin', 'user'], true)) $errors[] = 'Level tidak valid.';
+    if (!isset($levelOptions[$form['level']])) $errors[] = 'Level tidak valid.';
     if (!isset($statusOptions[$form['status_cd']])) $errors[] = 'Status tidak valid.';
+    $akses = aksesDariForm($_POST, $akses, $kunciAkses);
 
-    // Admin tidak boleh menurunkan level atau menonaktifkan akunnya sendiri,
-    // supaya tidak terkunci dari halaman pengguna.
     // Divalidasi di sini karena MySQL tidak strict: nilai enum yang salah akan tersimpan sebagai ''.
     if ($form['sub_level'] !== '' && !isset($subLevelOptions[$form['sub_level']])) $errors[] = 'Sub level tidak valid.';
     if ($form['id_wilayah'] !== '' && !in_array((int) $form['id_wilayah'], array_map('intval', array_column($wilayahList, 'id_wilayah')), true)) {
         $errors[] = 'Wilayah yang dipilih tidak aktif atau tidak ditemukan.';
     }
 
-    if ($isSelf && $form['level'] !== 'admin') $errors[] = 'Anda tidak bisa mengubah level akun Anda sendiri.';
+    // Akun sendiri: level, status, dan hak akses tidak bisa diubah, supaya tidak terkunci dari aplikasi.
+    if ($isSelf && $form['level'] !== $existing['level']) $errors[] = 'Anda tidak bisa mengubah level akun Anda sendiri.';
     if ($isSelf && $form['status_cd'] !== 'active') $errors[] = 'Anda tidak bisa menonaktifkan akun Anda sendiri.';
 
     // Password opsional: kosongkan jika tidak ingin diganti.
@@ -88,6 +93,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $form['username'], $form['nama_lengkap'], $form['level'],
             $form['sub_level'] ?: null, $form['id_wilayah'] ?: null, $form['status_cd'], $fotoProfil,
         ];
+        foreach ($akses as $menu => $nilai) {
+            $fields .= ", $menu = ?";
+            $params[] = $nilai;
+        }
         if ($password !== '') {
             $fields .= ', password = ?';
             $params[] = password_hash($password, PASSWORD_DEFAULT);
@@ -158,8 +167,9 @@ require_once __DIR__ . '/../includes/header.php';
                 <div class="col-md-6">
                     <label class="form-label">Level <span class="text-danger">*</span></label>
                     <select name="level" class="form-select" required>
-                        <option value="user" <?= $form['level'] === 'user' ? 'selected' : '' ?>>User</option>
-                        <option value="admin" <?= $form['level'] === 'admin' ? 'selected' : '' ?>>Admin</option>
+                        <?php foreach ($levelOptions as $value => $label): ?>
+                            <option value="<?= $value ?>" <?= $form['level'] === $value ? 'selected' : '' ?>><?= $label ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
                 <div class="col-md-6">
@@ -194,7 +204,7 @@ require_once __DIR__ . '/../includes/header.php';
                 </div>
                 <?php if ($isSelf): ?>
                 <div class="col-12">
-                    <div class="form-text text-warning"><i class="bi bi-info-circle"></i> Ini akun Anda sendiri: level harus tetap Admin dan status tetap Aktif.</div>
+                    <div class="form-text text-warning"><i class="bi bi-info-circle"></i> Ini akun Anda sendiri: level dan hak akses tidak bisa diubah, dan status harus tetap Aktif.</div>
                 </div>
                 <?php endif; ?>
 
@@ -208,6 +218,8 @@ require_once __DIR__ . '/../includes/header.php';
                     <input type="file" name="foto_profil" class="form-control" accept=".jpg,.jpeg,.png">
                     <div class="form-text">Opsional. jpg/png, maksimal 2MB. Kosongkan jika tidak ingin mengganti.</div>
                 </div>
+
+                <?php require __DIR__ . '/../includes/akses_form.php'; ?>
             </div>
 
             <div class="mt-4">

@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/auth.php';
-requireLogin();
+requireAkses('data_penduduk');
 
 $pdo = getDB();
 
@@ -22,7 +22,7 @@ $form = [
     'nik' => '', 'no_kk' => '', 'nama_lengkap' => '', 'tempat_lahir' => '', 'tanggal_lahir' => '',
     'jenis_kelamin' => 'L', 'agama' => '', 'pendidikan' => '', 'pekerjaan' => '', 'status_kawin' => '',
     'status_keluarga' => '', 'is_ahli_waris' => 0, 'alamat' => '', 'id_wilayah' => '',
-    'no_telepon' => '', 'nama_ayah' => '', 'nama_ibu' => '', 'kategori' => '',
+    'no_telepon' => '', 'email' => '', 'nama_ayah' => '', 'nama_ibu' => '', 'kategori' => '',
 ];
 
 function uploadFoto(string $field, string $subdir): ?string
@@ -73,6 +73,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($form['agama'] === '') $errors[] = 'Agama wajib dipilih.';
     if ($form['status_kawin'] === '') $errors[] = 'Status kawin wajib dipilih.';
     if ($form['alamat'] === '') $errors[] = 'Alamat wajib diisi.';
+    if ($form['email'] !== '' && (strlen($form['email']) > 100 || !filter_var($form['email'], FILTER_VALIDATE_EMAIL))) {
+        $errors[] = 'Format email tidak valid.';
+    }
 
     if (!$errors && $form['nik'] !== '') {
         $cek = $pdo->prepare('SELECT COUNT(*) FROM penduduk WHERE nik = ? AND status_cd <> \'nullified\'');
@@ -99,14 +102,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $stmt = $pdo->prepare("INSERT INTO penduduk
             (nik, no_kk, nama_lengkap, tempat_lahir, tanggal_lahir, jenis_kelamin, agama, pendidikan, pekerjaan,
-             status_kawin, status_keluarga, is_ahli_waris, alamat, id_wilayah, no_telepon, nama_ayah, nama_ibu,
+             status_kawin, status_keluarga, is_ahli_waris, alamat, id_wilayah, no_telepon, email, nama_ayah, nama_ibu,
              umur, kategori, foto_ktp, foto_kk)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
         $stmt->execute([
             $form['nik'], $form['no_kk'], $form['nama_lengkap'], $form['tempat_lahir'], $form['tanggal_lahir'],
             $form['jenis_kelamin'], $form['agama'], $form['pendidikan'] ?: null, $form['pekerjaan'] ?: null,
             $form['status_kawin'], $form['status_keluarga'] ?: null, $form['is_ahli_waris'], $form['alamat'],
-            $form['id_wilayah'] ?: null, $form['no_telepon'] ?: null, $form['nama_ayah'] ?: null,
+            $form['id_wilayah'] ?: null, $form['no_telepon'] ?: null, $form['email'] ?: null, $form['nama_ayah'] ?: null,
             $form['nama_ibu'] ?: null, $umur, $form['kategori'] ?: null, $fotoKtpPath, $fotoKkPath,
         ]);
 
@@ -265,6 +268,10 @@ require_once __DIR__ . '/../includes/header.php';
                     <div class="col-md-4">
                         <label class="form-label">No. Telepon</label>
                         <input type="text" name="no_telepon" class="form-control" maxlength="15" value="<?= htmlspecialchars($form['no_telepon']) ?>">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="email" class="form-control" maxlength="100" placeholder="nama@contoh.com" value="<?= htmlspecialchars($form['email']) ?>">
                     </div>
                 </div>
             </div>

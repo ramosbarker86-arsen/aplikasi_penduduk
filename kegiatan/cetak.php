@@ -4,8 +4,8 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/berita.php';
 require_once __DIR__ . '/../includes/surat.php';
-// Sama seperti edit: hanya kegiatan dalam lingkup wilayah pengguna.
-requireLogin();
+// Butuh akses menu Kegiatan; hanya kegiatan dalam lingkup wilayah pengguna.
+requireAkses('kegiatan');
 
 $pdo = getDB();
 $modul = MODUL_KEGIATAN;

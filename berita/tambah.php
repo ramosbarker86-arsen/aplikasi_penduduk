@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/berita.php';
-requireAdmin();
+requireAkses('berita');
 
 $modul = MODUL_BERITA;
 require __DIR__ . '/../includes/konten_tambah.php';

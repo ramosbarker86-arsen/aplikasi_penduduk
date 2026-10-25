@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/auth.php';
-requireLogin();
+requireAkses('data_penduduk');
 
 $pdo = getDB();
 
@@ -132,7 +132,7 @@ function kkVal($value)
                 <td><?= kkVal(tampilNik($a['nik'])) ?></td>
                 <td><?= $a['jenis_kelamin'] === 'L' ? 'Laki-laki' : 'Perempuan' ?></td>
                 <td><?= kkVal($a['tempat_lahir']) ?></td>
-                <td><?= $a['tanggal_lahir'] ? htmlspecialchars(date('d-m-Y', strtotime($a['tanggal_lahir']))) : '-' ?></td>
+                <td><?= $a['tanggal_lahir'] ? htmlspecialchars(tampilTanggalLahir($a['tanggal_lahir'])) : '-' ?></td>
                 <td><?= kkVal($a['agama']) ?></td>
                 <td><?= kkVal($a['pendidikan']) ?></td>
                 <td><?= kkVal($a['pekerjaan']) ?></td>

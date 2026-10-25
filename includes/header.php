@@ -30,38 +30,25 @@ $currentPage = basename($_SERVER['SCRIPT_NAME']);
                         <i class="bi bi-speedometer2"></i> Dashboard
                     </a>
                 </li>
+                <?php
+                // Menu tampil sesuai hak akses pengguna (kolom akses di tabel users; admin selalu semua).
+                $menuNav = [
+                    ['data_penduduk', 'penduduk', 'bi-person-lines-fill'],
+                    ['surat_keterangan', 'surat', 'bi-file-earmark-text'],
+                    ['kegiatan', 'kegiatan', 'bi-calendar-event'],
+                    ['berita', 'berita', 'bi-newspaper'],
+                    ['master_wilayah', 'wilayah', 'bi-geo-alt-fill'],
+                    ['pengguna', 'users', 'bi-person-gear'],
+                ];
+                // Nama variabel diberi awalan nav supaya tidak menimpa variabel halaman (mis. $akses di form pengguna).
+                foreach ($menuNav as [$navAkses, $navFolder, $navIkon]):
+                    if (!punyaAkses($navAkses)) continue; ?>
                 <li class="nav-item">
-                    <a class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/penduduk/') !== false ? 'active' : '' ?>" href="<?= $base ?>penduduk/list.php">
-                        <i class="bi bi-person-lines-fill"></i> Data Penduduk
+                    <a class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/' . $navFolder . '/') !== false ? 'active' : '' ?>" href="<?= $base . $navFolder ?>/list.php">
+                        <i class="bi <?= $navIkon ?>"></i> <?= AKSES_MENU[$navAkses] ?>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/surat/') !== false ? 'active' : '' ?>" href="<?= $base ?>surat/list.php">
-                        <i class="bi bi-file-earmark-text"></i> Surat Keterangan
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/kegiatan/') !== false ? 'active' : '' ?>" href="<?= $base ?>kegiatan/list.php">
-                        <i class="bi bi-calendar-event"></i> Kegiatan
-                    </a>
-                </li>
-                <?php if (isAdmin()): ?>
-                <li class="nav-item">
-                    <a class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/berita/') !== false ? 'active' : '' ?>" href="<?= $base ?>berita/list.php">
-                        <i class="bi bi-newspaper"></i> Berita
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/wilayah/') !== false ? 'active' : '' ?>" href="<?= $base ?>wilayah/list.php">
-                        <i class="bi bi-geo-alt-fill"></i> Master Wilayah
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/users/') !== false ? 'active' : '' ?>" href="<?= $base ?>users/list.php">
-                        <i class="bi bi-person-gear"></i> Pengguna
-                    </a>
-                </li>
-                <?php endif; ?>
+                <?php endforeach; ?>
             </ul>
             <ul class="navbar-nav">
                 <li class="nav-item dropdown">

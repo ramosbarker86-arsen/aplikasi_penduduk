@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/upload_profil.php';
-requireAdmin();
+requireAkses('pengguna');
 
 $pdo = getDB();
 
@@ -14,6 +14,14 @@ $form = [
 $statusOptions = ['active' => 'Aktif', 'inactive' => 'Tidak Aktif'];
 $subLevelOptions = ['rt' => 'RT', 'rw' => 'RW', 'kelurahan' => 'Kelurahan'];
 $wilayahList = $pdo->query("SELECT id_wilayah, propinsi, Kabupaten, kecamatan, kelurahan, rw, rt FROM wilayah WHERE status_cd = 'active' ORDER BY kelurahan ASC, rw ASC, rt ASC")->fetchAll();
+// Selain admin (yang diberi akses menu Pengguna) hanya boleh membuat akun berlevel user.
+$levelOptions = isAdmin() ? ['user' => 'User', 'admin' => 'Admin'] : ['user' => 'User'];
+// Pengguna baru: default kolom; menu yang tidak dimiliki pembuat (non-admin) tidak bisa diberikan.
+$akses = AKSES_DEFAULT;
+foreach ($akses as $menu => $v) {
+    if (!punyaAkses($menu)) $akses[$menu] = 'tidak';
+}
+$kunciAkses = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     foreach ($form as $key => $default) {
@@ -32,7 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt->fetchColumn() > 0) $errors[] = 'Username sudah digunakan.';
     }
     if ($form['nama_lengkap'] === '') $errors[] = 'Nama lengkap wajib diisi.';
-    if (!in_array($form['level'], ['admin', 'user'], true)) $errors[] = 'Level tidak valid.';
+    if (!isset($levelOptions[$form['level']])) $errors[] = 'Level tidak valid.';
+    $akses = aksesDariForm($_POST, $akses, false);
     if (!isset($statusOptions[$form['status_cd']])) $errors[] = 'Status tidak valid.';
     // Divalidasi di sini karena MySQL tidak strict: nilai enum yang salah akan tersimpan sebagai ''.
     if ($form['sub_level'] !== '' && !isset($subLevelOptions[$form['sub_level']])) $errors[] = 'Sub level tidak valid.';
@@ -51,12 +60,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$errors) {
-        $stmt = $pdo->prepare('INSERT INTO users (username, password, nama_lengkap, level, sub_level, id_wilayah, status_cd, foto_profil) VALUES (?,?,?,?,?,?,?,?)');
-        $stmt->execute([
+        $kolomAkses = array_keys(AKSES_MENU);
+        $stmt = $pdo->prepare('INSERT INTO users (username, password, nama_lengkap, level, sub_level, id_wilayah, status_cd, foto_profil, '
+                              . implode(', ', $kolomAkses) . ') VALUES (?,?,?,?,?,?,?,?' . str_repeat(',?', count($kolomAkses)) . ')');
+        $stmt->execute(array_merge([
             $form['username'], password_hash($password, PASSWORD_DEFAULT),
             $form['nama_lengkap'], $form['level'], $form['sub_level'] ?: null, $form['id_wilayah'] ?: null,
             $form['status_cd'], $fotoProfil,
-        ]);
+        ], array_values($akses)));
 
         $_SESSION['flash_success'] = 'Pengguna berhasil ditambahkan.';
         header('Location: list.php');
@@ -107,8 +118,9 @@ require_once __DIR__ . '/../includes/header.php';
                 <div class="col-md-6">
                     <label class="form-label">Level <span class="text-danger">*</span></label>
                     <select name="level" class="form-select" required>
-                        <option value="user" <?= $form['level'] === 'user' ? 'selected' : '' ?>>User</option>
-                        <option value="admin" <?= $form['level'] === 'admin' ? 'selected' : '' ?>>Admin</option>
+                        <?php foreach ($levelOptions as $value => $label): ?>
+                            <option value="<?= $value ?>" <?= $form['level'] === $value ? 'selected' : '' ?>><?= $label ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
                 <div class="col-md-6">
@@ -146,6 +158,8 @@ require_once __DIR__ . '/../includes/header.php';
                     <input type="file" name="foto_profil" class="form-control" accept=".jpg,.jpeg,.png">
                     <div class="form-text">Opsional. jpg/png, maksimal 2MB.</div>
                 </div>
+
+                <?php require __DIR__ . '/../includes/akses_form.php'; ?>
             </div>
 
             <div class="mt-4">

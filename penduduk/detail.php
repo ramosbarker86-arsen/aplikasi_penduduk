@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/auth.php';
-requireLogin();
+requireAkses('data_penduduk');
 
 $pdo = getDB();
 
@@ -49,7 +49,7 @@ require_once __DIR__ . '/../includes/header.php';
             field('NIK', tampilNik($row['nik']));
             field('No. KK', tampilNoKk($row['no_kk']));
             field('Nama Lengkap', $row['nama_lengkap']);
-            field('Tempat, Tanggal Lahir', trim($row['tempat_lahir'] . ', ' . date('d-m-Y', strtotime($row['tanggal_lahir'])), ', '));
+            field('Tempat, Tanggal Lahir', trim($row['tempat_lahir'] . ', ' . tampilTanggalLahir($row['tanggal_lahir']), ', '));
             field('Umur', $row['umur'] !== null ? $row['umur'] . ' tahun' : null);
             field('Jenis Kelamin', $row['jenis_kelamin'] === 'L' ? 'Laki-laki' : 'Perempuan');
             field('Agama', $row['agama']);
@@ -60,6 +60,7 @@ require_once __DIR__ . '/../includes/header.php';
             field('Kategori', $row['kategori']);
             field('Ahli Waris', $row['is_ahli_waris'] ? 'Ya' : 'Tidak');
             field('No. Telepon', $row['no_telepon']);
+            field('Email', tampilEmail($row['email']));
             field('Nama Ayah', $row['nama_ayah']);
             field('Nama Ibu', $row['nama_ibu']);
             field('RT/RW', trim(($row['rt'] ?: '-') . '/' . ($row['rw'] ?: '-')));

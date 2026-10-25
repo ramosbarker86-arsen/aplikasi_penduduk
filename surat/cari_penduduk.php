@@ -3,8 +3,8 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/surat.php';
-// Semua pengguna boleh membuat surat; data penduduk dibatasi lingkup wilayahnya (filterWilayahPenduduk).
-requireLogin();
+// Butuh akses menu Surat Keterangan; data penduduk dibatasi lingkup wilayah pengguna (filterWilayahPenduduk).
+requireAkses('surat_keterangan');
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -32,7 +32,7 @@ foreach ($stmt->fetchAll() as $row) {
         'nik' => $row['nik'],
         'nik_tampil' => tampilNik($row['nik']),
         'nama' => $row['nama_lengkap'],
-        'ttl' => trim($row['tempat_lahir'] . ', ' . tanggalIndonesia($row['tanggal_lahir']), ', '),
+        'ttl' => trim($row['tempat_lahir'] . ', ' . tampilTanggalLahir($row['tanggal_lahir'], 'tanggalIndonesia'), ', '),
         'jenis_kelamin' => $row['jenis_kelamin'] === 'L' ? 'Laki-laki' : 'Perempuan',
         'alamat' => $row['alamat'],
         'wilayah' => $row['rt'] !== null ? 'RT ' . $row['rt'] . '/RW ' . $row['rw'] . ', ' . $row['kelurahan'] : null,

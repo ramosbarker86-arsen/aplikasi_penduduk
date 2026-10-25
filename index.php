@@ -5,6 +5,11 @@ requireLogin();
 
 $pdo = getDB();
 $lingkup = filterWilayahPenduduk('id_wilayah');
+// Statistik & daftar penduduk hanya untuk pengguna yang punya akses menu Data Penduduk.
+$aksesPenduduk = punyaAkses('data_penduduk');
+if (!$aksesPenduduk) {
+    $lingkup = '1=0';
+}
 
 $totalPenduduk = (int) $pdo->query("SELECT COUNT(*) FROM penduduk WHERE status_cd = 'active' AND $lingkup")->fetchColumn();
 $totalLaki     = (int) $pdo->query("SELECT COUNT(*) FROM penduduk WHERE status_cd = 'active' AND $lingkup AND jenis_kelamin = 'L'")->fetchColumn();
@@ -29,11 +34,47 @@ require_once __DIR__ . '/includes/header.php';
         <a href="home.php" class="btn btn-outline-primary btn-sm">
             <i class="bi bi-house-door"></i> Halaman Home
         </a>
+        <?php if ($aksesPenduduk): ?>
         <a href="penduduk/tambah.php" class="btn btn-primary btn-sm">
             <i class="bi bi-plus-lg"></i> Tambah Penduduk
         </a>
+        <?php endif; ?>
     </div>
 </div>
+
+<?php if (!$aksesPenduduk): ?>
+    <?php
+    $pintasan = [
+        'surat_keterangan' => ['surat/list.php', 'bi-file-earmark-text'],
+        'kegiatan' => ['kegiatan/list.php', 'bi-calendar-event'],
+        'berita' => ['berita/list.php', 'bi-newspaper'],
+        'master_wilayah' => ['wilayah/list.php', 'bi-geo-alt-fill'],
+        'pengguna' => ['users/list.php', 'bi-person-gear'],
+    ];
+    $pintasan = array_filter($pintasan, fn($m) => punyaAkses($m), ARRAY_FILTER_USE_KEY);
+    ?>
+    <div class="card">
+        <div class="card-body">
+            <p class="mb-3">Selamat datang, <strong><?= htmlspecialchars(currentUser()['nama_lengkap'] ?: currentUser()['username']) ?></strong>.</p>
+            <?php if ($pintasan): ?>
+                <div class="row g-3">
+                    <?php foreach ($pintasan as $menu => [$url, $ikon]): ?>
+                        <div class="col-6 col-md-3">
+                            <a href="<?= $url ?>" class="card h-100 text-decoration-none text-reset border">
+                                <div class="card-body text-center">
+                                    <i class="bi <?= $ikon ?> fs-2 d-block mb-2"></i>
+                                    <?= htmlspecialchars(AKSES_MENU[$menu]) ?>
+                                </div>
+                            </a>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php else: ?>
+                <div class="text-muted">Akun Anda belum memiliki akses ke menu mana pun. Hubungi administrator.</div>
+            <?php endif; ?>
+        </div>
+    </div>
+<?php else: ?>
 
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
@@ -158,5 +199,6 @@ new Chart(document.getElementById('chartStatusKeluarga'), {
     },
 });
 </script>
+<?php endif; ?>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

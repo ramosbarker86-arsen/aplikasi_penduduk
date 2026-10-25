@@ -2,8 +2,8 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/surat.php';
-// Semua pengguna boleh membuat surat; data penduduk dibatasi lingkup wilayahnya (filterWilayahPenduduk).
-requireLogin();
+// Butuh akses menu Surat Keterangan; data penduduk dibatasi lingkup wilayah pengguna (filterWilayahPenduduk).
+requireAkses('surat_keterangan');
 
 $pdo = getDB();
 
@@ -138,7 +138,7 @@ require_once __DIR__ . '/../includes/header.php';
                     <div>
                         <div class="fw-semibold" id="pNama"><?= $penduduk ? htmlspecialchars($penduduk['nama_lengkap']) : '' ?></div>
                         <div class="small text-muted">NIK: <span id="pNik"><?= $penduduk ? htmlspecialchars(tampilNik($penduduk['nik'])) : '' ?></span></div>
-                        <div class="small">TTL: <span id="pTtl"><?= $penduduk ? htmlspecialchars(trim($penduduk['tempat_lahir'] . ', ' . tanggalIndonesia($penduduk['tanggal_lahir']), ', ')) : '' ?></span></div>
+                        <div class="small">TTL: <span id="pTtl"><?= $penduduk ? htmlspecialchars(trim($penduduk['tempat_lahir'] . ', ' . tampilTanggalLahir($penduduk['tanggal_lahir'], 'tanggalIndonesia'), ', ')) : '' ?></span></div>
                         <div class="small">Alamat: <span id="pAlamat"><?= $penduduk ? htmlspecialchars($penduduk['alamat']) : '' ?></span></div>
                         <div class="small">Wilayah: <span id="pWilayah"><?= $penduduk && $penduduk['rt'] !== null ? htmlspecialchars('RT ' . $penduduk['rt'] . '/RW ' . $penduduk['rw'] . ', ' . $penduduk['kelurahan']) : '<span class="text-danger">Belum ada wilayah</span>' ?></span></div>
                     </div>

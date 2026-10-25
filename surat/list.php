@@ -2,12 +2,14 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/surat.php';
-// Semua pengguna boleh membuat surat; data penduduk dibatasi lingkup wilayahnya (filterWilayahPenduduk).
-requireLogin();
+// Butuh akses menu Surat Keterangan; data penduduk dibatasi lingkup wilayah pengguna (filterWilayahPenduduk).
+requireAkses('surat_keterangan');
 
 $pdo = getDB();
 
 $search = trim($_GET['q'] ?? '');
+// Filter "Surat dihapus" (status inactive) hanya untuk admin; pengguna lain selalu melihat surat aktif.
+$lihatDihapus = isAdmin() && ($_GET['status'] ?? '') === 'inactive';
 $page = max(1, (int) ($_GET['page'] ?? 1));
 $perPage = 10;
 $offset = ($page - 1) * $perPage;
@@ -16,8 +18,9 @@ $offset = ($page - 1) * $perPage;
 $from = "FROM surat_keterangan s
          LEFT JOIN penduduk p ON p.id = (SELECT p2.id FROM penduduk p2 WHERE p2.nik = s.nik
                                           ORDER BY FIELD(p2.status_cd, 'active', 'inactive', 'nullified'), p2.id DESC LIMIT 1)";
-// Selain admin hanya melihat surat milik penduduk dalam lingkup wilayahnya.
-$where = 'WHERE ' . filterWilayahPenduduk('p.id_wilayah');
+// Surat aktif, atau surat yang dihapus (inactive) saat admin memilih filter "Surat dihapus".
+// Selain admin hanya surat penduduk dalam lingkup wilayahnya.
+$where = "WHERE s.status_cd = '" . ($lihatDihapus ? 'inactive' : 'active') . "' AND " . filterWilayahPenduduk('p.id_wilayah');
 $params = [];
 if ($search !== '') {
     $where .= ' AND (s.nomor_surat LIKE :q1 OR s.nik LIKE :q2 OR p.nama_lengkap LIKE :q3)';
@@ -42,6 +45,8 @@ $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $rows = $stmt->fetchAll();
 
+$jumlahDihapus = isAdmin() ? (int) $pdo->query("SELECT COUNT(*) FROM surat_keterangan WHERE status_cd = 'inactive'")->fetchColumn() : 0;
+
 $pageTitle = 'Surat Keterangan';
 require_once __DIR__ . '/../includes/header.php';
 ?>
@@ -51,7 +56,13 @@ require_once __DIR__ . '/../includes/header.php';
         <span class="page-title-icon"><i class="bi bi-file-earmark-text"></i></span>
         <div>
             <h4 class="mb-0">Surat Keterangan</h4>
-            <small class="text-muted"><?= (int) $totalRows ?> surat dibuat</small>
+            <small class="text-muted">
+                <?php if ($lihatDihapus): ?>
+                    <?= (int) $totalRows ?> surat dihapus &middot; <a href="list.php">Kembali ke surat aktif</a>
+                <?php else: ?>
+                    <?= (int) $totalRows ?> surat dibuat
+                <?php endif; ?>
+            </small>
         </div>
     </div>
     <a href="tambah.php" class="btn btn-primary">
@@ -68,10 +79,18 @@ require_once __DIR__ . '/../includes/header.php';
                     <input type="text" name="q" class="form-control" placeholder="Cari nomor surat, NIK, atau nama..." value="<?= htmlspecialchars($search) ?>">
                 </div>
             </div>
+            <?php if (isAdmin()): ?>
+            <div class="col-sm-4 col-md-3">
+                <select name="status" class="form-select" onchange="this.form.submit()">
+                    <option value="">Surat aktif</option>
+                    <option value="inactive" <?= $lihatDihapus ? 'selected' : '' ?>>Surat dihapus (<?= $jumlahDihapus ?>)</option>
+                </select>
+            </div>
+            <?php endif; ?>
             <div class="col-sm-4 col-md-2">
                 <button type="submit" class="btn btn-primary w-100">Cari</button>
             </div>
-            <?php if ($search !== ''): ?>
+            <?php if ($search !== '' || $lihatDihapus): ?>
             <div class="col-sm-4 col-md-2">
                 <a href="list.php" class="btn btn-outline-secondary w-100">Reset</a>
             </div>
@@ -95,7 +114,7 @@ require_once __DIR__ . '/../includes/header.php';
                     <?php if (empty($rows)): ?>
                         <tr><td colspan="6" class="text-center text-muted py-5">
                             <i class="bi bi-inbox fs-2 d-block mb-2"></i>
-                            Belum ada surat keterangan<?= $search !== '' ? ' yang cocok dengan pencarian' : '' ?>.
+                            <?= $lihatDihapus ? 'Tidak ada surat yang dihapus' : 'Belum ada surat keterangan' ?><?= $search !== '' ? ' yang cocok dengan pencarian' : '' ?>.
                         </td></tr>
                     <?php else: ?>
                         <?php foreach ($rows as $row): ?>
@@ -112,8 +131,21 @@ require_once __DIR__ . '/../includes/header.php';
                                 <td><?= htmlspecialchars(tampilNik($row['nik'])) ?></td>
                                 <td><?= htmlspecialchars(implode(', ', $kep)) ?></td>
                                 <td class="text-center text-nowrap pe-4">
+                                    <?php if ($lihatDihapus): ?>
+                                    <a href="pulihkan.php?id=<?= (int) $row['id'] ?>" class="btn btn-sm btn-outline-success" title="Pulihkan"
+                                       onclick="return confirm('Pulihkan surat nomor <?= htmlspecialchars($row['nomor_surat']) ?>?');">
+                                        <i class="bi bi-arrow-counterclockwise"></i> Pulihkan
+                                    </a>
+                                    <?php else: ?>
                                     <a href="edit.php?id=<?= (int) $row['id'] ?>" class="btn btn-sm btn-outline-primary" title="Edit Keperluan"><i class="bi bi-pencil"></i></a>
                                     <a href="cetak.php?id=<?= (int) $row['id'] ?>" class="btn btn-sm btn-outline-dark" title="Cetak" target="_blank"><i class="bi bi-printer"></i></a>
+                                    <?php if (isAdmin()): ?>
+                                    <a href="hapus.php?id=<?= (int) $row['id'] ?>" class="btn btn-sm btn-outline-danger" title="Hapus"
+                                       onclick="return confirm('Hapus surat nomor <?= htmlspecialchars($row['nomor_surat']) ?>? Nomor surat ini tidak akan dipakai lagi.');">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                    <?php endif; ?>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -129,7 +161,7 @@ require_once __DIR__ . '/../includes/header.php';
             <ul class="pagination pagination-sm mb-0 justify-content-end">
                 <?php for ($pg = 1; $pg <= $totalPages; $pg++): ?>
                     <li class="page-item <?= $pg === $page ? 'active' : '' ?>">
-                        <a class="page-link" href="?page=<?= $pg ?>&q=<?= urlencode($search) ?>"><?= $pg ?></a>
+                        <a class="page-link" href="?page=<?= $pg ?>&q=<?= urlencode($search) ?><?= $lihatDihapus ? '&status=inactive' : '' ?>"><?= $pg ?></a>
                     </li>
                 <?php endfor; ?>
             </ul>
